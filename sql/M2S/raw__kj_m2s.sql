@@ -1,29 +1,21 @@
 SELECT
+  'initial_role' as role_id,
   item_003,
   CASE
     WHEN item_001_tenki = '0' THEN ''
     ELSE item_001_tenki
   END AS item_001_tenki,
   company_name,
-  -- 顧客名 カナ（半角カナを全角カナへ変換する）
   arrayFold(
     (acc, t) -> replaceAll(acc, t.1, t.2),
-
     [
-      -- 濁音（最優先）
       ('ｶﾞ','ガ'),('ｷﾞ','ギ'),('ｸﾞ','グ'),('ｹﾞ','ゲ'),('ｺﾞ','ゴ'),
       ('ｻﾞ','ザ'),('ｼﾞ','ジ'),('ｽﾞ','ズ'),('ｾﾞ','ゼ'),('ｿﾞ','ゾ'),
       ('ﾀﾞ','ダ'),('ﾁﾞ','ヂ'),('ﾂﾞ','ヅ'),('ﾃﾞ','デ'),('ﾄﾞ','ド'),
-
-      -- 半濁音
       ('ﾊﾞ','バ'),('ﾋﾞ','ビ'),('ﾌﾞ','ブ'),('ﾍﾞ','ベ'),('ﾎﾞ','ボ'),
       ('ﾊﾟ','パ'),('ﾋﾟ','ピ'),('ﾌﾟ','プ'),('ﾍﾟ','ペ'),('ﾎﾟ','ポ'),
-
-      -- 小文字
       ('ｬ','ャ'),('ｭ','ュ'),('ｮ','ョ'),('ｯ','ッ'),
       ('ｧ','ァ'),('ｨ','ィ'),('ｩ','ゥ'),('ｪ','ェ'),('ｫ','ォ'),
-
-      -- 基本カナ
       ('ｱ','ア'),('ｲ','イ'),('ｳ','ウ'),('ｴ','エ'),('ｵ','オ'),
       ('ｶ','カ'),('ｷ','キ'),('ｸ','ク'),('ｹ','ケ'),('ｺ','コ'),
       ('ｻ','サ'),('ｼ','シ'),('ｽ','ス'),('ｾ','セ'),('ｿ','ソ'),
@@ -38,63 +30,32 @@ SELECT
     item_224
   ) AS item_224,
 
-  -- 郵便番号(3,4文字目の間にハイフン追加、""は空文字のまま、" "は""へ変換) 
-  if(
-    item_004 = '',
-    '',
-    if(
-      item_004 = ' ',
-      '',
-      concat(substr(item_004, 1, 3), '-', substr(item_004, 4, 4))
-    )
-  ) AS item_004,
+  if(item_004 = '', '', if(item_004 = ' ', '', concat(substr(item_004, 1, 3), '-', substr(item_004, 4, 4)))) AS item_004,
   item_005,
-  -- TEL(" "なら""に変換、文字列が入っていれば含まれる'-'を削除する)
+
+  if(phone_no = ' ', '', replaceAll(phone_no, '-', '')) AS phone_no,
+  if(item_007 = ' ', '', replaceAll(item_007, '-', '')) AS item_007,
+
+  transform(ifNull(toString(item_024), ''), ['1','2','3'], ['関東','関西','名古屋'], '') AS item_024,
+  transform(ifNull(toString(item_230), ''), ['1','2','3'], ['無','有','転居（住所不明）'], '') AS item_230,
+
   if(
-    phone_no = ' ',
-    '',
-    replaceAll(phone_no, '-', '')
-  ) AS phone_no,
-  -- 携帯電話番号(" "なら""に変換、文字列が入っていれば含まれる'-'を削除する
-  if(
-    item_007 = ' ',
-    '',
-    replaceAll(item_007, '-', '')
-  ) AS item_007,
-  'initial_role' as role_id,
-  /* item_024 */
-  transform(
-    ifNull(toString(item_024), ''),
-    ['1','2','3'],
-    ['関東','関西','名古屋'],
-    ''
-  ) AS item_024,
-  /* item_230 */
-  transform(
-    ifNull(toString(item_230), ''),
-    ['1','2','3'],
-    ['無','有','転居（住所不明）'],
-    ''
-  ) AS item_230,
-  ifNull(
-    formatDateTime(
-      parseDateTimeBestEffortOrNull(item_026),
-      '%Y/%m/%d'
-    ),
-    ''
+      length(item_026) = 8,
+      concat(
+          substring(item_026, 1, 4), '/',
+          substring(item_026, 5, 2), '/',
+          substring(item_026, 7, 2)
+      ),
+      ''
   ) AS item_026,
-  /* item_030 */
+
   transform(
     ifNull(toString(item_030), ''),
     [
-      '1','2','3','4','5',
-      '6','7','8','9','10',
-      '11','12','13','14',
-      '15','16','17','18',
-      '19','20',
-      '21','22',
-      '23','24','25',
-      '26','27','28','29','30','31'
+      '1','2','3','4','5','6','7','8','9','10',
+      '11','12','13','14','15','16','17','18',
+      '19','20','21','22','23','24','25','26',
+      '27','28','29','30','31'
     ],
     [
       'A011 当社客紹介','J040 個人開拓','A031 特約店紹介','B010 寺院紹介','B020 檀家紹介',
@@ -108,7 +69,7 @@ SELECT
     ],
     ''
   ) AS item_030,
-  /* item_031 */
+
   transform(
     ifNull(toString(item_031), ''),
     arrayMap(x -> toString(x), range(1, 78)),
@@ -139,81 +100,51 @@ SELECT
     ],
     ''
   ) AS item_031,
-  /* item_034 */
-  transform(
-    ifNull(toString(item_034), ''),
-    ['1','2','3','4','5','6','7','8','9'],
-    ['6ヶ月以内','6ヶ月以上','初期登録','不明','予備','即案内','名簿','没','失注'],
-    ''
-  ) AS item_034,
+
+  transform(ifNull(toString(item_034), ''), ['1','2','3','4','5','6','7','8','9'], ['6ヶ月以内','6ヶ月以上','初期登録','不明','予備','即案内','名簿','没','失注'], '') AS item_034,
+
   item_040,
-  /* item_035 */
+
   transform(ifNull(toString(item_035), ''), ['1','2'], ['無','有'], '') AS item_035,
-  /* item_036 */
   transform(ifNull(toString(item_036), ''), ['1','2'], ['非対象','対象'], '') AS item_036,
-  /* item_225 */
   transform(ifNull(toString(item_225), ''), ['1','2','3'], ['男性','女性','企業法人'], '') AS item_225,
 
-/* item_226 */
-transform(
-  ifNull(toString(item_226), ''),
-  [
-    '1','2','3','4','5','6','7','8','9','10',
-    '11','12','13','14','15','16','17','18','19'
-  ],
-  [
-    '無宗派',
-    '神道',
-    'キリスト教',
-    '天台宗',
-    '真言宗',
-    '浄土宗',
-    '浄土真宗',
-    '浄土真宗本願寺（西本願寺）',
-    '真宗大谷派（東本願寺）',
-    '臨済宗',
-    '曹洞宗',
-    '日蓮宗',
-    '日蓮正宗',
-    '創価学会',
-    '立正佼正会',
-    '時宗',
-    '黄檗宗',
-    '禅宗',
-    'その他'
-  ],
-  ''
-) AS item_226,
-  /* item_029 */
-  transform(ifNull(toString(item_029), ''), ['1','2','3','4','5'], ['寿陵','死亡','改葬','建替','不明'], '') AS item_029,
-  item_010,
-  ifNull(
-    formatDateTime(
-      parseDateTimeBestEffortOrNull(item_227),
-      '%Y/%m/%d'
-    ),
+  transform(
+    ifNull(toString(item_226), ''),
+    ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19'],
+    ['無宗派','神道','キリスト教','天台宗','真言宗','浄土宗','浄土真宗','浄土真宗本願寺（西本願寺）',
+     '真宗大谷派（東本願寺）','臨済宗','曹洞宗','日蓮宗','日蓮正宗','創価学会','立正佼正会','時宗','黄檗宗','禅宗','その他'],
     ''
+  ) AS item_226,
+
+  transform(ifNull(toString(item_029), ''), ['1','2','3','4','5'], ['寿陵','死亡','改葬','建替','不明'], '') AS item_029,
+
+  item_010,
+
+
+  if(
+      length(item_227) = 8,
+      concat(
+          substring(item_227, 1, 4), '/',
+          substring(item_227, 5, 2), '/',
+          substring(item_227, 7, 2)
+      ),
+      ''
   ) AS item_227,
+
+
   item_231,
-  -- 送付先　フリガナ（半角カナを全角カナへ変換する）
+
   arrayFold(
     (acc, t) -> replaceAll(acc, t.1, t.2),
-
     [
-      -- 濁音（最優先）
       ('ｶﾞ','ガ'),('ｷﾞ','ギ'),('ｸﾞ','グ'),('ｹﾞ','ゲ'),('ｺﾞ','ゴ'),
       ('ｻﾞ','ザ'),('ｼﾞ','ジ'),('ｽﾞ','ズ'),('ｾﾞ','ゼ'),('ｿﾞ','ゾ'),
       ('ﾀﾞ','ダ'),('ﾁﾞ','ヂ'),('ﾂﾞ','ヅ'),('ﾃﾞ','デ'),('ﾄﾞ','ド'),
-
-      -- 半濁音
       ('ﾊﾞ','バ'),('ﾋﾞ','ビ'),('ﾌﾞ','ブ'),('ﾍﾞ','ベ'),('ﾎﾞ','ボ'),
       ('ﾊﾟ','パ'),('ﾋﾟ','ピ'),('ﾌﾟ','プ'),('ﾍﾟ','ペ'),('ﾎﾟ','ポ'),
-
-      -- 小文字
       ('ｬ','ャ'),('ｭ','ュ'),('ｮ','ョ'),('ｯ','ッ'),
       ('ｧ','ァ'),('ｨ','ィ'),('ｩ','ゥ'),('ｪ','ェ'),('ｫ','ォ'),
-
-      -- 基本カナ
       ('ｱ','ア'),('ｲ','イ'),('ｳ','ウ'),('ｴ','エ'),('ｵ','オ'),
       ('ｶ','カ'),('ｷ','キ'),('ｸ','ク'),('ｹ','ケ'),('ｺ','コ'),
       ('ｻ','サ'),('ｼ','シ'),('ｽ','ス'),('ｾ','セ'),('ｿ','ソ'),
@@ -227,42 +158,58 @@ transform(
     ],
     item_232
   ) AS item_232,
-  
-  -- 送付先 郵便番号(3,4文字目の間にハイフン追加、""は空文字のまま、" "は""へ変換) 
-  if(
-    item_233 = '',
-    '',
-    if(
-      item_233 = ' ',
-      '',
-      concat(substr(item_233, 1, 3), '-', substr(item_233, 4, 4))
-    )
-  ) AS item_233,
+
+  if(item_233 = '', '', if(item_233 = ' ', '', concat(substr(item_233, 1, 3), '-', substr(item_233, 4, 4)))) AS item_233,
+
   item_234,
-  item_235,
-  item_012,
-  item_013,
-  item_014,
-  item_015,
-  item_016,
-  item_017,
-  item_018,
+
+  if(item_235 = ' ', '', replaceAll(item_235, '-', '')) AS item_235,
+
+  item_012,item_013,item_014,item_015,item_016,item_017,item_018,
+
   transform(ifNull(toString(item_039), ''), ['1'], ['希望者'], '') AS item_039,
   transform(ifNull(toString(item_037), ''), ['1','2'], ['無','有'], '') AS item_037,
   transform(ifNull(toString(item_038), ''), ['1','2'], ['無','有'], '') AS item_038,
   transform(ifNull(toString(item_025), ''), ['1','2','3'], ['見込客','申込客','決定客'], '') AS item_025,
   transform(ifNull(toString(item_237), ''), ['1','2','3'], ['未確認','同意する','同意しない'], '') AS item_237,
-  ifNull(
-    formatDateTime(
-      parseDateTimeBestEffortOrNull(item_238),
-      '%Y/%m/%d'
-    ),
-    ''
+
+  if(
+      length(item_238) = 8,
+      concat(
+          substring(item_238, 1, 4), '/',
+          substring(item_238, 5, 2), '/',
+          substring(item_238, 7, 2)
+      ),
+      ''
   ) AS item_238,
-  item_239, 
+
+  item_239,
+
   transform(ifNull(toString(item_009), ''), ['1','2','3'], ['不可','可','転居'], '') AS item_009,
   transform(ifNull(toString(item_236), ''), ['1','2','3'], ['不可','可','転居'], '') AS item_236,
   transform(ifNull(toString(item_011), ''), ['1','2','3'], ['送信可','送信不可','未確認'], '') AS item_011,
   transform(ifNull(toString(item_042), ''), ['1','2'], ['活動中','失注'], '') AS item_042
-FROM
-  {selected_table}
+
+FROM {selected_table} t
+
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM (
+    SELECT *,
+      count() OVER (PARTITION BY item_003) AS cnt_003,
+      count() OVER (PARTITION BY item_001_tenki) AS cnt_001
+    FROM {selected_table}
+  ) e
+  WHERE e.item_003 = t.item_003
+    AND (
+      (e.item_003 != '0' AND e.cnt_003 > 1)
+      OR (e.item_001_tenki != '0' AND e.cnt_001 > 1)
+      OR (length(trim(e.item_004)) > 0 AND length(replaceAll(e.item_004, '-', '')) != 7)
+      OR (length(trim(e.item_233)) > 0 AND length(replaceAll(e.item_233, '-', '')) != 7)
+      OR (e.item_026 != '0' AND length(replaceAll(e.item_026, '/', '')) != 8)
+      OR (e.item_227 != '0' AND length(replaceAll(e.item_227, '/', '')) != 8)
+      OR (length(trim(e.phone_no)) > 0 AND length(replaceAll(e.phone_no, '-', '')) NOT IN (10, 11))
+      OR (length(trim(e.item_007)) > 0 AND length(replaceAll(e.item_007, '-', '')) NOT IN (10, 11))
+      OR (length(trim(e.item_235)) > 0 AND length(replaceAll(e.item_235, '-', '')) NOT IN (10, 11))
+    )
+);

@@ -250,24 +250,33 @@ select
   , transform(ifNull(toString(item_042),''),['1','2'],['活動中','失注'],'') as item_042
 
 from {selected_table} t
-where not exists (
-  select 1
-  from (
-    select *,
+where item_003 not in
+(
+  select item_003
+  from
+  (
+    select
+      item_003,
+      item_001_tenki,
+      item_004,
+      item_233,
+      item_026,
+      item_227,
+      phone_no,
+      item_007,
+      item_235,
       count() over (partition by item_003) as cnt_003,
       count() over (partition by item_001_tenki) as cnt_001
     from {selected_table}
-  ) e
-  where e.item_003 = t.item_003
-    and (
-      (e.item_003 != '0' and e.cnt_003 > 1)
-      or (e.item_001_tenki != '0' and e.cnt_001 > 1)
-      or (length(trim(e.item_004)) > 0 and length(replaceAll(e.item_004,'-','')) != 7)
-      or (length(trim(e.item_233)) > 0 and length(replaceAll(e.item_233,'-','')) != 7)
-      or (e.item_026 != '0' and length(replaceAll(e.item_026,'/','')) != 8)
-      or (e.item_227 != '0' and length(replaceAll(e.item_227,'/','')) != 8)
-      or (length(trim(e.phone_no)) > 0 and length(replaceAll(e.phone_no,'-','')) not in (10,11))
-      or (length(trim(e.item_007)) > 0 and length(replaceAll(e.item_007,'-','')) not in (10,11))
-      or (length(trim(e.item_235)) > 0 and length(replaceAll(e.item_235,'-','')) not in (10,11))
-    )
+  )
+  where
+      (item_003 != '0' and cnt_003 > 1)
+   or (item_001_tenki != '0' and cnt_001 > 1)
+   or (length(trim(item_004)) > 0 and length(replaceAll(item_004, '-', '')) != 7)
+   or (length(trim(item_233)) > 0 and length(replaceAll(item_233, '-', '')) != 7)
+   or (item_026 != '0' and length(replaceAll(item_026, '/', '')) != 8)
+   or (item_227 != '0' and length(replaceAll(item_227, '/', '')) != 8)
+   or (length(trim(phone_no)) > 0 and length(replaceAll(phone_no, '-', '')) not in (10, 11))
+   or (length(trim(item_007)) > 0 and length(replaceAll(item_007, '-', '')) not in (10, 11))
+   or (length(trim(item_235)) > 0 and length(replaceAll(item_235, '-', '')) not in (10, 11))
 );
